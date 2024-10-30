@@ -69,6 +69,7 @@
   __block NSString *addr = nil;
   [self enumerateWifiAddresses:AF_INET
                     usingBlock:^(struct ifaddrs *ifaddr) {
+                      if (addr) return; // Pick the first valid address
                       addr = [self descriptionForAddress:ifaddr->ifa_addr];
                     }];
   return addr;
@@ -87,6 +88,7 @@
   __block NSString *addr = nil;
   [self enumerateWifiAddresses:AF_INET
                     usingBlock:^(struct ifaddrs *ifaddr) {
+                      if (addr) return; // Pick the first valid address
                       addr = [self descriptionForAddress:ifaddr->ifa_netmask];
                     }];
   return addr;
@@ -145,7 +147,7 @@
       if (temp_addr->ifa_addr->sa_family == family) {
         // en0 is the wifi connection on iOS
         if ([[NSString stringWithUTF8String:temp_addr->ifa_name]
-                isEqualToString:@"en0"]) {
+                hasPrefix:@"en"]) {
           block(temp_addr);
         }
       }
