@@ -67,11 +67,22 @@
 
 - (NSString *)getWifiIP {
   __block NSString *addr = nil;
+  __block NSString *addr2 = nil;
+    
   [self enumerateWifiAddresses:AF_INET
                     usingBlock:^(struct ifaddrs *ifaddr) {
-                      if (addr) return; // Pick the first valid address
                       addr = [self descriptionForAddress:ifaddr->ifa_addr];
                     }];
+    
+  [self enumerateWifiAddresses2:AF_INET
+                    usingBlock:^(struct ifaddrs *ifaddr) {
+                      addr2 = [self descriptionForAddress:ifaddr->ifa_addr];
+                    }];
+    
+  if (addr == nil) {
+    return  addr2;
+  }
+    
   return addr;
 }
 
@@ -86,11 +97,22 @@
 
 - (NSString *)getWifiSubmask {
   __block NSString *addr = nil;
+  __block NSString *addr2 = nil;
+    
   [self enumerateWifiAddresses:AF_INET
                     usingBlock:^(struct ifaddrs *ifaddr) {
-                      if (addr) return; // Pick the first valid address
                       addr = [self descriptionForAddress:ifaddr->ifa_netmask];
                     }];
+    
+  [self enumerateWifiAddresses2:AF_INET
+                    usingBlock:^(struct ifaddrs *ifaddr) {
+                      addr2 = [self descriptionForAddress:ifaddr->ifa_netmask];
+                    }];
+      
+  if (addr == nil) {
+    return  addr2;
+  }
+      
   return addr;
 }
 
@@ -147,7 +169,35 @@
       if (temp_addr->ifa_addr->sa_family == family) {
         // en0 is the wifi connection on iOS
         if ([[NSString stringWithUTF8String:temp_addr->ifa_name]
-                hasPrefix:@"en"]) {
+                isEqualToString:@"en0"]) {
+          block(temp_addr);
+        }
+      }
+
+      temp_addr = temp_addr->ifa_next;
+    }
+  }
+
+  // Free memory
+  freeifaddrs(interfaces);
+}
+
+- (void)enumerateWifiAddresses2:(NSInteger)family
+                    usingBlock:(void (^)(struct ifaddrs *))block {
+  struct ifaddrs *interfaces = NULL;
+  struct ifaddrs *temp_addr = NULL;
+  int success = 0;
+
+  // retrieve the current interfaces - returns 0 on success
+  success = getifaddrs(&interfaces);
+  if (success == 0) {
+    // Loop through linked list of interfaces
+    temp_addr = interfaces;
+    while (temp_addr != NULL) {
+      if (temp_addr->ifa_addr->sa_family == family) {
+        // en0 is the wifi connection on iOS
+        if ([[NSString stringWithUTF8String:temp_addr->ifa_name]
+                isEqualToString:@"en2"]) {
           block(temp_addr);
         }
       }
